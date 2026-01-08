@@ -1,0 +1,76 @@
+Perfect, this is essentially a Linux system administration exercise involving user/group management, directory setup, permissions, and access control. Let me walk you through the exact commands step by step so you can replicate this on a Linux system.
+________________________________________
+🔹 Step 1: Create Users and Groups
+# Create users
+sudo useradd alice
+sudo useradd bob
+sudo useradd carol
+
+# Create group devteam
+sudo groupadd devteam
+
+# Add bob and carol to devteam
+sudo usermod -aG devteam bob
+sudo usermod -aG devteam carol
+________________________________________
+🔹 Step 2: Setup Project Directory
+# Create /project directory
+sudo mkdir /project
+
+# Assign ownership
+sudo chown alice:devteam /project
+
+# Set permissions: owner + group full access, others none
+sudo chmod 770 /project
+________________________________________
+🔹 Step 3: Create Files with Specific Permissions
+a) Project Plan File
+# Switch to alice
+sudo -u alice touch /project/project_plan.txt
+
+# Permissions: alice can read/write, others can only read
+sudo chmod 644 /project/project_plan.txt
+b) Source Code Directory
+# Create src directory owned by bob with group devteam
+sudo mkdir /project/src
+sudo chown bob:devteam /project/src
+
+# Permissions: bob + devteam full access, others none
+sudo chmod 770 /project/src
+c) Script File build.sh
+# Create build.sh as bob
+sudo -u bob touch /project/src/build.sh
+
+# Make it executable, but only bob can execute
+sudo chmod 744 /project/src/build.sh
+•	7 → bob: read/write/execute
+•	4 → group: read only
+•	4 → others: read only
+________________________________________
+🔹 Step 4: Set Default Permissions for New Files in /project/src
+a) Ensure group inheritance
+# Set SGID bit so new files inherit devteam group
+sudo chmod g+s /project/src
+b) Configure default umask
+To enforce owner RW and group R only:
+# Create ACL default rule
+sudo setfacl -d -m u::rw /project/src
+sudo setfacl -d -m g::r /project/src
+sudo setfacl -d -m o::0 /project/src
+________________________________________
+🔹 Step 5: User Access Tests
+a) Carol edits project_plan.txt (should fail)
+sudo -u carol nano /project/project_plan.txt
+# → Permission denied for writing
+b) Bob executes build.sh (should succeed)
+sudo -u bob /project/src/build.sh
+# → Executes successfully
+c) Carol executes build.sh (should fail)
+sudo -u carol /project/src/build.sh
+# → Permission denied (no execute permission)
+d) Alice views contents of /project/src
+sudo -u alice ls -l /project/src
+Expected output:
+-rwxr--r-- 1 bob devteam 0 Jan  8 22:20 build.sh
+________________________________________
+
